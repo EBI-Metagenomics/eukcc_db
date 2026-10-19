@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
+
 import os
 import logging
 from collections import defaultdict
@@ -8,9 +9,6 @@ from collections import Counter
 import operator
 from statistics import median
 from ete3 import NCBITaxa
-
-# from glob import glob
-# import shutil
 import csv
 
 ncbi = NCBITaxa()
