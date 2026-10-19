@@ -1,0 +1,6 @@
+.dev/
+work/
+results/
+cache/
+.nextflow*
+.DS_Store
