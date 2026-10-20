@@ -35,7 +35,7 @@ process prepare_taxdb {
 }
 
 // Nuclear genetic code of every candidate genome (nodes.dmp, column 7): ciliates,
-// some diplomonads and kinetoplastids do not use the standard code
+// some diplomonads and kinetoplastids do not use the standard code. Reported in coverage.tsv only
 process genetic_codes {
     label 'process_single'
     container 'biocontainers/python:3.9--1'

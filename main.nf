@@ -25,8 +25,7 @@ workflow build {
 
     // 3. Proteomes: MetaEuk reference and protein prediction
     proteomes(genome_selection.out.group_genomes,
-              genome_selection.out.metaeuk_proteomes,
-              genome_selection.out.genetic_codes)
+              genome_selection.out.metaeuk_proteomes)
 
     // 4. Build db: one run per clade, the three groups plus base with every genome
     group_proteomes = proteomes.out.proteomes.groupTuple()           // (group, [proteomes])

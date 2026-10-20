@@ -19,7 +19,7 @@ of every step.
   - hold-out: ~30 RefSeq species, one per phylum at a time, never the last genome of a phylum or an order,
      kept out of every database (it can be larger: 43 species with NCBI in October 2026)
   - MetaEuk reference: annotated RefSeq proteomes of ~25 species (default), one per phylum at a time
-  - MetaEuk protein prediction for every remaining genome, with its NCBI genetic code
+  - MetaEuk protein prediction for every remaining genome, with the standard genetic code (as EukCC)
   - per sub-database (base = all genomes; fungi, plant, protozoa = the NCBI division):
        calibration set (~45 species by phylum) vs PANTHER -> one bit score cut-off per
        profile (GA line) -> every genome searched with `--cut_ga`

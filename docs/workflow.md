@@ -66,8 +66,8 @@ the database are selected.
 
   The number of genomes removed by each filter goes to `provenance/build_summary.tsv`.
 - **2c. `genetic_codes`:** reads the genetic code of each candidate species from the
-  taxonomy dump. It is used by 3b, so each genome is translated with its own code (the
-  legacy workflow used the standard code for all of them).
+  taxonomy dump. It is used only in the report: `coverage.tsv` counts the genomes with a
+  non-standard code, which 3b still translates with the standard one.
 - **2d. `download_genome`:** downloads the genome sequence of each candidate. The genomes
   are kept in a cache and reused between runs.
 - **2e. `size_filter`:** drops genomes smaller than 2 Mb, just below the smallest known
@@ -130,10 +130,11 @@ built from the MetaEuk set. They are used by every search and tree of step 4.
   to predict the proteins of every genome in 3b, and it ships in `db_base/`, where EukCC
   uses it to predict the MAG proteins.
 - **3b. `metaeuk_pred`:** predicts the proteins of every genome left after 2g, with MetaEuk.
-  The legacy code used the same genetic code (the standard one) for all genomes, and it
-  silently removed the genomes MetaEuk failed to predict proteins for. The updated version
-  uses the genetic code of each species (from 2c), and the genomes MetaEuk fails on are
-  recorded in `exclusions.tsv`.
+  As in the legacy code, every genome is translated with the standard genetic code,
+  because EukCC predicts the MAG proteins with it, and the bit score cut-offs (4c) must be
+  calibrated on the same kind of proteins. The legacy code silently removed the genomes
+  MetaEuk failed to predict proteins for; the updated version records them in
+  `exclusions.tsv`.
 
 ## 4. Build db
 

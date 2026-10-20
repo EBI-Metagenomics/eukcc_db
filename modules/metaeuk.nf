@@ -25,24 +25,25 @@ process metaeuk_db {
     """
 }
 
-// Proteins of one genome, translated with its nuclear genetic code
+// Proteins of one genome, translated with the standard genetic code
 process metaeuk_pred {
-    tag "${clade}/${fasta.baseName} (code ${code})"
+    tag "${clade}/${fasta.baseName}"
     label 'process_medium'
     container 'biocontainers/metaeuk:4.a0f584d--h95f258a_2'
 
     input:
-    tuple val(clade), path(fasta), val(code), path(db)  // (group, <accession>.fna, genetic code, [microeuks_metaeuk.db*])
+    tuple val(clade), path(fasta), path(db)  // (group, <accession>.fna, [microeuks_metaeuk.db*])
 
     output:
-    tuple val(clade), path("${fasta.baseName}.faa")     // (group, <accession>.faa)
+    tuple val(clade), path("${fasta.baseName}.faa")  // (group, <accession>.faa)
 
     script:
     def acc = fasta.baseName
     """
+    # standard code (1) for every genome, as EukCC uses to predict the MAG proteins
     metaeuk easy-predict \\
         --protein 1 \\
-        --translation-table ${code} \\
+        --translation-table 1 \\
         --threads ${task.cpus} \\
         ${fasta} \\
         microeuks_metaeuk.db \\
