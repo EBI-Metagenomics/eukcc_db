@@ -7,13 +7,14 @@ process get_group_summary {
 
     input:
     tuple val(group), val(db)                              // (group, catalogue): e.g. (fungi, refseq)
+    val(ncbi_url)                                          // NCBI FTP root (--ncbi_url)
 
     output:
     tuple val(db), val(group), path("${db}_${group}.txt")  // (catalogue, group, assembly_summary.txt)
 
     script:
     """
-    wget -q -O ${db}_${group}.txt ${params.ncbi_url}/genomes/${db}/${group}/assembly_summary.txt
+    wget -q -O ${db}_${group}.txt ${ncbi_url}/genomes/${db}/${group}/assembly_summary.txt
     """
 }
 
@@ -25,12 +26,13 @@ process filter_release_date {
 
     input:
     tuple val(db), val(group), path(summary)                     // (catalogue, group, assembly_summary.txt)
+    val(cutoff_date)                                             // YYYY-MM-DD (--cutoff_date)
 
     output:
     tuple val(db), val(group), path("dated_${db}_${group}.txt")  // the same, only rows released up to --cutoff_date
 
     script:
-    def cutoff = params.cutoff_date.toString().replace('-', '/')
+    def cutoff = cutoff_date.toString().replace('-', '/')
     """
     awk -F'\\t' -v d='${cutoff}' '/^#/ || \$15 <= d' ${summary} > dated_${db}_${group}.txt
     """
@@ -47,6 +49,9 @@ process zip_summary {
 
     input:
     tuple val(group), path(summaries), path(taxdb, stageAs: 'taxa.sqlite')           // (group, [RefSeq and GenBank summaries of the group], taxa.sqlite)
+    val(genbank_fill_groups)                                                         // groups where GenBank fills only the phyla without RefSeq (--genbank_fill_groups)
+    val(min_relative_size)                                                           // minimum size as a fraction of the genus median; '' = off (--min_relative_size)
+    val(pilot_species)                                                               // species kept per division; '' = all (--pilot_species)
 
     output:
     tuple val(group), path("${group}_combined.csv"), emit: table                     // (group, <group>_combined.csv: group,taxid,accession of every candidate)
@@ -55,9 +60,9 @@ process zip_summary {
 
     script:
     // ete3's NCBITaxa() reads $HOME/.etetoolkit/taxa.sqlite: point HOME at the run's copy
-    def fill = group in params.genbank_fill_groups ? '--genbank_fill' : ''
-    def relsize = params.min_relative_size ? "--min_relative_size ${params.min_relative_size}" : ''
-    def pilot = params.pilot_species ? "--pilot ${params.pilot_species}" : ''
+    def fill = group in genbank_fill_groups ? '--genbank_fill' : ''
+    def relsize = min_relative_size ? "--min_relative_size ${min_relative_size}" : ''
+    def pilot = pilot_species ? "--pilot ${pilot_species}" : ''
     """
     ETE3_VERSION=\$(python -c "import ete3; print(ete3.__version__)")
     export HOME=\$PWD LC_ALL=C

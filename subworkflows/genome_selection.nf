@@ -11,13 +11,16 @@ workflow genome_selection {
 
     main:
     // 2a. only with --cutoff_date
-    dated = params.cutoff_date ? filter_release_date(summaries) : summaries
+    dated = params.cutoff_date ? filter_release_date(summaries, params.cutoff_date) : summaries
 
     // 2b. one genome per species. in: (group, [the RefSeq and GenBank summaries of the group], taxdb)
     zip_summary(dated
         .groupTuple(by: 1)                                           // ([catalogues], group, [summaries])
         .map { _catalogues, group, group_summaries -> tuple(group, group_summaries) }
-        .combine(taxdb))
+        .combine(taxdb),
+        params.genbank_fill_groups,
+        params.min_relative_size ?: '',
+        params.pilot_species ?: '')
     // the candidates of the three groups in one file: group,taxid,accession
     ncbi_table = zip_summary.out.table.map { _group, candidates_csv -> candidates_csv }
         .collectFile(name: 'ncbi_table.txt', sort: { candidates_csv -> candidates_csv.name }).first()
@@ -30,10 +33,12 @@ workflow genome_selection {
     download_genome(candidates)
 
     // 2e. in: (group, genome); out: the same, only for genomes >= minbp
-    size_filter(download_genome.out)
+    size_filter(download_genome.out, params.minbp)
 
     // 2f. in: ncbi_table, [every genome that passed the size filter], taxdb
-    choose_representative(ncbi_table, size_filter.out.map { _group, genome -> genome }.collect(), taxdb)
+    choose_representative(ncbi_table, size_filter.out.map { _group, genome -> genome }.collect(), taxdb,
+        params.minbp, params.holdout_size, params.holdout_min_species, params.holdout_protect_ranks,
+        params.calibration_size, params.metaeuk_size, params.metaeuk_per_phylum)
 
     // 2g. the legacy emit names: "training" = fna/remaining, "bitscore" = fna/training;
     // together they are every genome that is not in the hold-out
@@ -41,7 +46,6 @@ workflow genome_selection {
         .mix(choose_representative.out.bitscore.flatten())
         .ifEmpty { error "No genome left for the databases after the hold-out: every candidate went to it (--holdout_size ${params.holdout_size})" }
         .collect()
-    // in: [genomes], species_classification.csv; out: (group, [genomes]) per group
     split_clades(database_genomes, choose_representative.out.info)
 
     // 2h. in: one genome of the MetaEuk set; out: its annotated RefSeq proteome

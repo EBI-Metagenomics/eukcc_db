@@ -7,6 +7,7 @@ process prepare_taxdb {
 
     input:
     path(dump)                        // the NCBI taxonomy dump (taxdump.tar.gz or a taxdmp_YYYY-MM-01.zip)
+    val(source)                       // where the dump came from (--taxdump), written to taxonomy.tsv
 
     output:
     path("taxa.sqlite"), emit: taxdb  // taxa.sqlite ete3
@@ -18,7 +19,7 @@ process prepare_taxdb {
     python -c "from ete3 import NCBITaxa; NCBITaxa(dbfile='taxa.sqlite', taxdump_file='dump.tar.gz')" > build.log 2>&1
     rm dump.tar.gz
     {
-        printf 'source\\t%s\\n' '${params.taxdump}'
+        printf 'source\\t%s\\n' '${source}'
         printf 'md5\\t%s\\n' "\$(md5sum ${dump} | cut -d' ' -f1)"
         printf 'ncbi_date\\t%s\\n' "\$(taxdump.py date ${dump})"
         printf 'built\\t%s\\n' "\$(date -u +%Y-%m-%d)"
@@ -29,7 +30,7 @@ process prepare_taxdb {
     stub:
     """
     touch taxa.sqlite
-    printf 'source\\t${params.taxdump}\\n' > taxonomy.tsv
+    printf 'source\\t${source}\\n' > taxonomy.tsv
     """
 }
 
@@ -63,27 +64,28 @@ process genetic_codes {
 
 // PANTHER library from the public tarball
 process fetch_panther {
-    tag "${params.panther_version}"
+    tag "${panther_version}"
     label 'process_single'
     container 'biocontainers/python:3.9--1'
-    storeDir "${workflow.stubRun ? "${workflow.workDir}/stub_cache" : params.cachedir}/panther/${params.panther_version}"
+    storeDir "${workflow.stubRun ? "${workflow.workDir}/stub_cache" : params.cachedir}/panther/${panther_version}"
 
     input:
-    path(tarball)                             // the PANTHER library tarball (--panther_url)
+    path(tarball)                      // the PANTHER library tarball (--panther_url)
+    val(panther_version)               // PANTHER version (--panther_version)
 
     output:
-    path("PANTHER${params.panther_version}")  // PANTHER<version>/ with books/ (no subfamilies)
+    path("PANTHER${panther_version}")  // PANTHER<version>/ with books/ (no subfamilies)
 
     script:
     """
     mkdir x
     tar xzf ${tarball} -C x --exclude='*/SF*'
-    mv "\$(dirname "\$(find x -type d -name books | head -1)")" PANTHER${params.panther_version}
+    mv "\$(dirname "\$(find x -type d -name books | head -1)")" PANTHER${panther_version}
     rm -rf x
     """
 
     stub:
     """
-    mkdir -p PANTHER${params.panther_version}/books
+    mkdir -p PANTHER${panther_version}/books
     """
 }
