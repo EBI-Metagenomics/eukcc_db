@@ -29,7 +29,7 @@ workflow build_db {
     other_proteomes = genome_group.out.training.transpose()         // (clade, proteome)
 
     // per-profile bit score cut-offs
-    // in: (clade, calibration proteome, all.hmm + 4 indices)
+    // in: (clade, calibration proteome, all.hmm + 4 indices), e-value (--evalue)
     hmmsearch_training(calibration_proteomes.combine(panther_db), params.evalue)
     // in: (clade, [hmmsearch tables of the calibration set], ncbi_table, taxdb)
     optimize_bitscore(hmmsearch_training.out.tbl.groupTuple().combine(ncbi_table).combine(taxdb))
@@ -71,7 +71,7 @@ workflow build_db {
     trimal_named(famsa.out.aln)
 
     // drop leaves with too many gaps, then one HMM per block and the concatenation
-    // in: (clade, [trimmed alignment of every marker])
+    // in: (clade, [trimmed alignment of every marker]), gap threshold (--max_leaf_gap_fraction, '' = report only)
     filter_gappy_leaves(trimal_named.out.aln
         .map { clade, _marker, trimmed_aln -> tuple(clade, trimmed_aln) }
         .groupTuple(),
@@ -91,12 +91,12 @@ workflow build_db {
 
     // tree: the model comes from ModelFinder on one sub-database unless it is off
     if (params.iqtree) {
-        // in: (clade, supermatrix) of params.modelfinder_clade only; out: model.txt
+        // in: (clade, supermatrix) of params.modelfinder_clade only, seed (--seed); out: model.txt
         model = params.modelfinder
             ? modelfinder(horizontal.out.filter { clade, _supermatrix -> clade == params.modelfinder_clade }, params.seed)
                 .model.map { model_file -> model_file.text.trim() }.first()
             : channel.value(params.iqmodel)
-        // in: (clade, supermatrix, model); out: (clade, tree)
+        // in: (clade, supermatrix, model), seed (--seed); out: (clade, tree)
         tree = iqtree(horizontal.out.combine(model), params.seed).tree
     } else {
         model = channel.value(params.iqmodel)
@@ -110,8 +110,8 @@ workflow build_db {
 
     // one row per clade, in the order the db process reads it:
     // (clade, SCMG table, supermatrix, rooted tree, SCMG HMMs, placement HMMs, [blocks],
-    //  [block HMMs], taxinfo, [MetaEuk files], model)
-    db_inputs = get_SCMG.out
+    //  [block HMMs], taxinfo)
+    clade_files = get_SCMG.out
         .join(horizontal.out)
         .join(midpoint_root.out)
         .join(hmmfetch_db.out)
@@ -119,9 +119,9 @@ workflow build_db {
         .join(filter_gappy_leaves.out.alns)
         .join(hmmbuild.out.groupTuple())
         .join(reduce_taxinfo.out)
-        .combine(metaeuk_files.map { metaeuk_db_files -> [metaeuk_db_files] })
-        .combine(model)
-    db(db_inputs, params.panther_version)
+    // in: the files of the clade, [MetaEuk files], model, PANTHER version (--panther_version);
+    // the last three are the same for every clade
+    db(clade_files, metaeuk_files, model, params.panther_version)
 
     emit:
     db = db.out

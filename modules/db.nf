@@ -6,11 +6,21 @@ process db {
     container 'biocontainers/python:3.9--1'
 
     input:
-    tuple val(clade), path(scmgs), path(treealn), path(tree), path(hmmdb), path(placement_hmm), path(bb_aln), path(bb_profiles), path(taxinfo), path(metaeukdb), val(model)  // (clade, SCMG table, supermatrix, rooted tree, SCMG HMMs, placement HMMs, [blocks], [block HMMs], taxinfo, [MetaEuk files], model)
-    val(panther_version)                                                                                                                                                     // PANTHER version (--panther_version), written to db_info.json
+    tuple val(clade),
+          path(scmgs),           // SCMG table: genome,profile rows
+          path(treealn),         // supermatrix
+          path(tree),            // rooted tree
+          path(hmmdb),           // SCMG HMMs + indices
+          path(placement_hmm),   // placement HMMs + indices
+          path(bb_aln),          // [blocks]
+          path(bb_profiles),     // [block HMMs]
+          path(taxinfo)          // taxid,accession of every genome searched
+    path(metaeukdb)              // [MetaEuk files]
+    val(model)                   // substitution model of the tree
+    val(panther_version)         // PANTHER version (--panther_version), written to db_info.json
 
     output:
-    path("db_${clade}")                                                                                                                                                      // db_<clade>/ with its db_info.json
+    path("db_${clade}")          // db_<clade>/ with its db_info.json
 
     script:
     """

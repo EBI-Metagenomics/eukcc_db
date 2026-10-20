@@ -10,10 +10,11 @@ workflow genome_selection {
     taxdb           // taxa.sqlite
 
     main:
-    // 2a. only with --cutoff_date
+    // 2a. only with --cutoff_date. in: (catalogue, group, summary), cut-off date
     dated = params.cutoff_date ? filter_release_date(summaries, params.cutoff_date) : summaries
 
-    // 2b. one genome per species. in: (group, [the RefSeq and GenBank summaries of the group], taxdb)
+    // 2b. one genome per species. in: (group, [the RefSeq and GenBank summaries of the group], taxdb),
+    // GenBank fill groups, min_relative_size and pilot_species ('' = off)
     zip_summary(dated
         .groupTuple(by: 1)                                           // ([catalogues], group, [summaries])
         .map { _catalogues, group, group_summaries -> tuple(group, group_summaries) }
@@ -32,10 +33,11 @@ workflow genome_selection {
     candidates = ncbi_table.splitCsv().map { row -> tuple(row[0], row[1], row[2]) }.unique()
     download_genome(candidates)
 
-    // 2e. in: (group, genome); out: the same, only for genomes >= minbp
+    // 2e. in: (group, genome), minbp; out: the same, only for genomes >= minbp
     size_filter(download_genome.out, params.minbp)
 
-    // 2f. in: ncbi_table, [every genome that passed the size filter], taxdb
+    // 2f. in: ncbi_table, [every genome that passed the size filter], taxdb, minbp,
+    // hold-out size/min species/protected ranks, calibration and MetaEuk sizes, MetaEuk per phylum
     choose_representative(ncbi_table, size_filter.out.map { _group, genome -> genome }.collect(), taxdb,
         params.minbp, params.holdout_size, params.holdout_min_species, params.holdout_protect_ranks,
         params.calibration_size, params.metaeuk_size, params.metaeuk_per_phylum)

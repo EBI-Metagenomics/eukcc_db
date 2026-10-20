@@ -18,19 +18,20 @@ workflow inputs {
         taxdb = channel.value(file(params.taxdb, checkIfExists: true))
         taxonomy_info = channel.empty()
     } else {
-        // in: the taxdump file (tar.gz or zip)
+        // in: the taxdump file (tar.gz or zip), its source (--taxdump, written to taxonomy.tsv)
         prepare_taxdb(file(params.taxdump), params.taxdump)
         taxdb = prepare_taxdb.out.taxdb
         taxonomy_info = prepare_taxdb.out.info
     }
 
-    // 1b. assembly_summary.txt per division: from --summaries or downloaded.
+    // 1b. assembly_summary.txt per division: from --summaries or downloaded from --ncbi_url.
     divisions = channel.fromList(params.divisions) // [group, catalogue] pairs, e.g. ['fungi', 'refseq']
     summaries = params.summaries
         ? divisions.map { group, catalogue -> tuple(catalogue, group, file("${params.summaries}/${catalogue}_${group}.txt", checkIfExists: true)) }
         : get_group_summary(divisions, params.ncbi_url)
 
     // 1c. PANTHER: a local directory holding books/ (--panther), or the public tarball
+    // (--panther_url) of --panther_version
     panther = params.panther ? channel.value(file(params.panther, type: 'dir', checkIfExists: true))
                              : fetch_panther(file(params.panther_url), params.panther_version)
 
