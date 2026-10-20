@@ -231,7 +231,7 @@ process choose_tree_profiles {
 
     script:
     // LC_ALL=C pins the glob order, i.e. the order find_tree_MG.py reads the tables,
-    // which together with its seed(42) fixes the tie-breaks
+    // which together with its seed(42) allows reproducible selection of the same markers
     """
     export LC_ALL=C
     mkdir hmmer

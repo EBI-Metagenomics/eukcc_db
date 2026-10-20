@@ -9,31 +9,27 @@ import argparse
 import os
 import sys
 
+from Bio import SeqIO
+from Bio.Align import MultipleSeqAlignment
 
-def read_fasta(path):
-    seqs, name = {}, None
-    with open(path) as fin:
-        for line in fin:
-            line = line.strip()
-            if line.startswith(">"):
-                name = line[1:].split()[0]
-                seqs[name] = []
-            elif name is not None:
-                seqs[name].append(line)
-    return {k: "".join(v) for k, v in seqs.items()}
+
+def read_block(path):
+    """One alignment block: {name: record}; MultipleSeqAlignment checks the equal lengths"""
+    alignment = MultipleSeqAlignment(SeqIO.parse(path, "fasta"))
+    return {record.id: record for record in alignment}
 
 
 def gap_fractions(blocks):
-    """blocks: {path: {name: seq}} -> {name: fraction of gap columns in the concatenation}"""
+    """blocks: {path: {name: record}} -> {name: fraction of gap columns in the concatenation}"""
     lengths = {p: len(next(iter(s.values()))) if s else 0 for p, s in blocks.items()}
     total = sum(lengths.values())
     names = sorted({n for s in blocks.values() for n in s})
     frac = {}
     for n in names:
         gaps = 0
-        for p, seqs in blocks.items():
-            seq = seqs.get(n)
-            gaps += lengths[p] if seq is None else seq.count("-") + seq.count(".")
+        for p, records in blocks.items():
+            record = records.get(n)
+            gaps += lengths[p] if record is None else record.seq.count("-") + record.seq.count(".")
         frac[n] = gaps / total if total else 1.0
     return frac
 
@@ -47,19 +43,20 @@ def main():
     ap.add_argument("alignments", nargs="+")
     args = ap.parse_args()
 
-    blocks = {p: read_fasta(p) for p in sorted(args.alignments)}
+    blocks = {p: read_block(p) for p in sorted(args.alignments)}
     frac = gap_fractions(blocks)
     thr = args.max_gap_fraction
     drop = {n for n, f in frac.items() if thr is not None and f > thr}
 
     os.makedirs(args.outdir, exist_ok=True)
-    for path, seqs in blocks.items():
-        kept = {n: s for n, s in seqs.items() if n not in drop}
-        if seqs and not kept:
+    for path, records in blocks.items():
+        kept = [r for n, r in records.items() if n not in drop]
+        if records and not kept:
             sys.exit(f"dropping {len(drop)} leaves would empty {path}; raise --max-gap-fraction")
-        with open(os.path.join(args.outdir, os.path.basename(path)), "w") as fout:
-            for n, s in kept.items():
-                fout.write(f">{n}\n{s}\n")
+        for r in kept:
+            r.description = ""  # header = the name only
+        # fasta-2line: one line per sequence, as the blocks were written before
+        SeqIO.write(kept, os.path.join(args.outdir, os.path.basename(path)), "fasta-2line")
 
     with open(f"leaf_gaps_{args.clade}.tsv", "w") as fout:
         fout.write("accession\tgap_fraction\texcluded\n")

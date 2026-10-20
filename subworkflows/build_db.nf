@@ -2,11 +2,10 @@
 // Runs once per clade: base, fungi, plant, protozoa.
 
 include { choose_representative_no_testing as genome_group;
-          optimize_bitscore; insert_bitscore; hmmpress_GA;
-          choose_tree_profiles; get_SCMG; reduce_taxinfo; midpoint_root;
-          itol_annotations }                                               from '../modules/general'
-include { hmmsearch_training; hmmsearch_GA; group_top_hit; concat_faa;
-          hmmbuild; hmmfetch; hmmfetch_db }                                from '../modules/hmmer'
+          optimize_bitscore; insert_bitscore; choose_tree_profiles;
+          get_SCMG; reduce_taxinfo; midpoint_root; itol_annotations }      from '../modules/general'
+include { hmmsearch_training; hmmpress_GA; hmmsearch_GA; group_top_hit;
+          concat_faa; hmmbuild; hmmfetch; hmmfetch_db }                    from '../modules/hmmer'
 include { famsa }                                                          from '../modules/famsa'
 include { trimal_named }                                                   from '../modules/trimal'
 include { filter_gappy_leaves; horizontal }                                from '../modules/alignment'
