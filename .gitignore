@@ -4,3 +4,4 @@ results/
 cache/
 .nextflow*
 .DS_Store
+__pycache__/
