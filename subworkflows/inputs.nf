@@ -2,7 +2,7 @@
 
 include { prepare_taxdb; fetch_panther }  from '../modules/prepare'
 include { get_group_summary }             from '../modules/ncbi'
-include { concat_panther }                from '../modules/general'
+include { concat_panther }                from '../modules/hmmer'
 
 workflow inputs {
     main:
