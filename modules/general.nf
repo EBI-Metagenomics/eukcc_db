@@ -320,7 +320,7 @@ process midpoint_root {
     """
 }
 
-// iTOL annotation files: sub-database and major group of each leaf on base, phylum to
+// iTOL annotation files: sub-database and phylum of each leaf on base, phylum to
 // family on the others
 process itol_annotations {
     tag "${clade}"
@@ -334,7 +334,7 @@ process itol_annotations {
     tuple val(clade), path("${clade}*")                                                                 // (clade, [tree and iTOL annotation files])
 
     script:
-    def ranks = clade == 'base' ? 'subdb group' : 'phylum class order family'
+    def ranks = clade == 'base' ? 'subdb phylum' : 'phylum class order family'
     """
     cp ${tree} ${clade}_rooted.tre
     itol_annotations.py --tree ${tree} --taxinfo ${taxinfo} --groups ${ncbi_table} \\

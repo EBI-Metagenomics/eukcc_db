@@ -5,7 +5,7 @@ each sub-database.
 exclusions.tsv     one row per genome (and sub-database) that did not become a leaf
 build_summary.tsv  per sub-database: NCBI rows -> filters -> genomes kept -> profiles
                    calibrated -> SCMGs -> placement markers -> tree
-coverage.tsv       per sub-database, eukaryotic group and phylum: candidates, hold-out,
+coverage.tsv       per sub-database, group (fungi, plant, protozoa) and phylum: candidates, hold-out,
                    genomes in the sub-database, leaves, non-standard genetic codes
                    (with --taxdb)
 
@@ -25,19 +25,10 @@ from collections import Counter, defaultdict
 
 GROUPS = ("fungi", "plant", "protozoa")
 
-# eukaryotic groups reported in coverage.tsv, the most specific first
-LINEAGES = [
-    "Microsporidia", "Fungi", "Choanoflagellata", "Ichthyosporea", "Filasterea", "Rotosphaerida",
-    "Chlorophyta", "Streptophyta", "Rhodophyta", "Glaucocystophyceae", "Cryptophyceae", "Haptophyta",
-    "Oomycota", "Bacillariophyta", "Stramenopiles", "Apicomplexa", "Ciliophora", "Dinophyceae",
-    "Perkinsozoa", "Alveolata", "Rhizaria", "Kinetoplastea", "Euglenida", "Discoba", "Metamonada",
-    "Amoebozoa",
-]
 
-
-def lineages(path, taxids):
-    """{taxid: (group, phylum)} from an ete3 taxa.sqlite, read with plain SQL"""
-    out = {t: ("NA", "NA") for t in taxids}
+def phyla(path, taxids):
+    """{taxid: phylum} from an ete3 taxa.sqlite, read with plain SQL"""
+    out = {t: "NA" for t in taxids}
     try:
         con = sqlite3.connect(path)
         track = {}
@@ -56,14 +47,7 @@ def lineages(path, taxids):
     except sqlite3.Error:
         return out
     for t, lng in track.items():
-        names = [info.get(x, ("?", ""))[0] for x in lng]
-        group = next((g for g in LINEAGES if g in names), None)
-        if group is None:
-            root_first = list(reversed(lng))
-            i = root_first.index(2759) if 2759 in root_first else -1
-            group = "other: " + (info.get(root_first[i + 1], ("?",))[0] if 0 <= i < len(root_first) - 1 else "?")
-        phylum = next((info[x][0] for x in lng if info.get(x, ("", ""))[1] == "phylum"), "no phylum")
-        out[t] = (group, phylum)
+        out[t] = next((info[x][0] for x in lng if info.get(x, ("", ""))[1] == "phylum"), "no phylum")
     return out
 
 
@@ -261,17 +245,17 @@ def main():
             add(sub, "leaves", len(aln), "leaves of the reference tree")
             add(sub, "alignment_columns", next(iter(aln.values()), 0), "columns of the concatenated alignment")
 
-    # ---- coverage per eukaryotic group and phylum -------------------------------------
+    # ---- coverage per group and phylum ----------------------------------------------
     if args.taxdb:
         code = {}
         if args.genetic_codes:
             with open(args.genetic_codes) as fin:
                 for acc, _taxid, gc in csv.reader(fin, delimiter="\t"):
                     code[acc] = gc
-        lin = lineages(args.taxdb, set(taxid_of.values()))
+        phylum_of = phyla(args.taxdb, set(taxid_of.values()))
         cov = defaultdict(Counter)
         for acc, group in group_of.items():
-            key = lin[taxid_of[acc]]
+            key = (group, phylum_of[taxid_of[acc]])
             in_db = acc in predicted and "testing" not in roles[acc]
             for sub in (group, "base"):
                 c = cov[(sub,) + key]

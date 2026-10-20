@@ -112,7 +112,7 @@ Here we include some outputs that are not present on the original workflow:
   families, the calibrated profiles, the SCMG candidates (profiles single-copy in at least
   one genome) and SCMGs per genome, the placement markers, the leaves and the alignment
   width.
-- `provenance/coverage.tsv`: per sub-database, eukaryotic group and phylum, the
+- `provenance/coverage.tsv`: per sub-database, group (fungi, plant, protozoa) and phylum, the
   candidates, hold-out, genomes in the sub-database, leaves and genomes with a
   non-standard genetic code.
 - `provenance/exclusions.tsv`: every candidate that did not become a leaf, with the stage
@@ -124,8 +124,8 @@ Here we include some outputs that are not present on the original workflow:
 
 `itol/<subdb>/` holds the rooted tree and annotation files to drop onto
 [iTOL](https://itol.embl.de): `<subdb>_labels.txt` (species names), and colour strips of
-the sub-database and the major eukaryotic group of each leaf on base (`base_subdb.txt`,
-`base_group.txt`), and phylum, class, order and family on the others
+the sub-database and the phylum of each leaf on base (`base_subdb.txt`,
+`base_phylum.txt`), and phylum, class, order and family on the others
 (`<subdb>_phylum.txt` ...). Colours come from the hue family of the sub-database (fungi red to orange,
 plant greens, protozoa blue to purple; grey for "no rank"), so every category reads as
 the sub-database its genomes are in. A tree whose colours break into many interleaved blocks does

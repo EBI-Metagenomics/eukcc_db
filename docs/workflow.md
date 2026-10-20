@@ -220,8 +220,8 @@ of the database and checks that all expected files are present.
 
 - **5a. `build_report`:** writes three tables to `provenance/`: where every candidate
   genome was removed and why (`exclusions.tsv`), how many genomes passed each step
-  (`build_summary.tsv`), and which eukaryotic lineages each sub-database covers
-  (`coverage.tsv`).
+  (`build_summary.tsv`), and which groups (fungi, plant, protozoa) and phyla each
+  sub-database covers (`coverage.tsv`).
 - **5b. `package_db`:** builds the release directory `eukcc2_db_<name>/`, the folder given
   to EukCC with `--db`. It holds the four sub-databases, the `taxa.sqlite` from 1a
   (`etetoolkit/`) and the provenance of the build. Before finishing, it checks the

@@ -41,7 +41,7 @@ process db {
 }
 
 // Where every candidate genome went, the counts of each sub-database, and which
-// eukaryotic lineages each sub-database covers
+// groups (fungi, plant, protozoa) and phyla each sub-database covers
 process build_report {
     label 'process_single'
     container 'biocontainers/python:3.9--1'
@@ -64,7 +64,7 @@ process build_report {
     output:
     path("exclusions.tsv"), emit: exclusions                     // where every candidate was removed and why
     path("build_summary.tsv"), emit: summary                     // count after each step, per clade
-    path("coverage.tsv"), emit: coverage                         // lineages each clade covers
+    path("coverage.tsv"), emit: coverage                         // groups and phyla each clade covers
 
     script:
     """

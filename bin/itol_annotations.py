@@ -4,10 +4,8 @@
 
 <prefix>_labels.txt      LABELS: leaf accession -> "Species name (accession)"
 <prefix>_<level>.txt     DATASET_COLORSTRIP, one per --levels entry: an NCBI rank
-                         (phylum, class, order, family, ...), "subdb", the
-                         sub-database of the genome (fungi, plant, protozoa), or
-                         "group", its major eukaryotic group (Fungi, Chlorophyta,
-                         Rhodophyta, Apicomplexa, Ciliophora, ...)
+                         (phylum, class, order, family, ...) or "subdb", the
+                         sub-database of the genome (fungi, plant, protozoa)
 
 Drag the tree and the files onto https://itol.embl.de (help: itol.embl.de/help.cgi#annot).
 """
@@ -24,14 +22,6 @@ from ete3 import NCBITaxa, Tree
 HUES = {"fungi": (0, 40), "plant": (80, 160), "protozoa": (190, 290)}
 SUBDB_COLORS = {"fungi": "#e6550d", "plant": "#31a354", "protozoa": "#3182bd"}
 MISSING = "#d9d9d9"
-# major eukaryotic groups for the "group" level, the most specific first
-GROUPS = [
-    "Microsporidia", "Fungi", "Choanoflagellata", "Ichthyosporea", "Filasterea", "Rotosphaerida",
-    "Chlorophyta", "Streptophyta", "Rhodophyta", "Glaucocystophyceae", "Cryptophyceae", "Haptophyta",
-    "Oomycota", "Bacillariophyta", "Stramenopiles", "Apicomplexa", "Ciliophora", "Dinophyceae",
-    "Perkinsozoa", "Alveolata", "Rhizaria", "Kinetoplastea", "Euglenida", "Discoba", "Metamonada",
-    "Amoebozoa",
-]
 
 
 def colorstrip(path, label, assignments, colors):
@@ -160,11 +150,6 @@ def main():
         names = ncbi.get_taxid_translator(lng)
         lineage[t] = {ranks[x]: names[x] for x in lng}
         lineage[t]["_name"] = names.get(lng[-1], str(t)) if lng else str(t)
-        in_lineage = set(names.values())
-        group_name = next((g for g in GROUPS if g in in_lineage), None)
-        if group_name is None and 2759 in lng and lng.index(2759) + 1 < len(lng):
-            group_name = "other " + names[lng[lng.index(2759) + 1]]
-        lineage[t]["group"] = group_name or "no group"
 
     with open("{}_labels.txt".format(args.prefix), "w") as fout:
         fout.write("LABELS\nSEPARATOR TAB\nDATA\n")
