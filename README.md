@@ -64,7 +64,7 @@ nextflow run . -profile docker --mode testing --db results/eukcc2_db_2026_10 --o
 | `--taxdb` | | a ready `taxa.sqlite` instead |
 | `--panther` / `--panther_url` | PANTHER 16.0 public tarball (3.9 GB) | a directory holding `books/` |
 | `--summaries` | download | a directory with `<catalogue>_<group>.txt`, to pin the NCBI snapshot |
-| `--pilot_species` | | pilot run: keep only N species per division (largest phyla first, RefSeq and small genomes first); no files to prepare |
+| `--pilot_species` | | pilot run: keep only N species per division, spread over the taxonomy (a new phylum first, then a new class, order, family, genus; RefSeq and small genomes first on ties); no files to prepare |
 | `--cutoff_date` | | `YYYY-MM-DD`: only assemblies released up to that date |
 | `--minbp` | 2000000 | minimum assembly size (the smallest nuclear genomes, Microsporidia, are ~2.2 Mb) |
 | `--min_relative_size` | 0.1 | drop genomes below this fraction of the median size of their genus (or family): partial assemblies; `null` = off |

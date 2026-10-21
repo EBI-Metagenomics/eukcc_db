@@ -37,6 +37,8 @@ process db {
         --places_hmm ${bb_profiles} \\
         --taxinfo ${taxinfo} \\
         --metaeuk  microeuks_metaeuk.db*
+    # empty text library (~2 GB): hmmfetch reads just the pressed .h3* files
+    truncate -s 0 db_${clade}/scmgs/${clade}_PANTHERv${panther_version}.hmm
     """
 }
 

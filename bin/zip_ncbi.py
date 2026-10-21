@@ -120,23 +120,43 @@ def relative_size(data, sizes, min_fraction, stats):
     return kept
 
 
+PILOT_RANKS = ("phylum", "class", "order", "family", "genus")
+
+
+def taxon_path(taxid):
+    """(phylum, class, order, family, genus) of a taxid; a rank that is not set takes the
+    taxon above it, and a missing phylum the highest rank below it (lineage_key)"""
+    lng = get_lineage(taxid)
+    ranks = ncbi.get_rank(lng)
+    at = {ranks.get(t): t for t in lng}
+    path = []
+    for rank in PILOT_RANKS:
+        path.append(at.get(rank, path[-1] if path else lineage_key(taxid)))
+    return path
+
+
 def pilot(data, sizes, n, stats):
-    """a small, deterministic subset for a pilot run: n species, two at a time from the
-    largest phyla first (RefSeq and smaller genomes first within a phylum), so the hold-out
-    and the MetaEuk reference still have RefSeq genomes to draw from"""
-    buckets = defaultdict(list)
-    for taxid, acc in data.items():
-        buckets[lineage_key(taxid)].append((not acc.startswith("GCF"), sizes.get(acc, 0), acc, taxid))
-    order = sorted(buckets, key=lambda k: (-len(buckets[k]), str(k)))
-    for k in order:
-        buckets[k].sort()
+    """a small, deterministic subset for a pilot run that keeps the diversity of the
+    division: n species, each pick the species of the highest taxon not covered yet (a new
+    phylum, then a new class, order, family, genus), from the least sampled phylum, class...
+    first; ties go to RefSeq and smaller genomes, so the hold-out and the MetaEuk reference
+    still have RefSeq genomes to draw from"""
+    paths = {taxid: taxon_path(taxid) for taxid in data}
+    counts = defaultdict(int)
+    left = dict(data)
     kept = defaultdict(str)
-    while len(kept) < n and any(buckets[k] for k in order):
-        for k in order:
-            for _ in range(2):
-                if buckets[k] and len(kept) < n:
-                    _refseq, _size, acc, taxid = buckets[k].pop(0)
-                    kept[taxid] = acc
+
+    def key(taxid):
+        seen = [counts[(i, t)] for i, t in enumerate(paths[taxid])]
+        new = next((i for i, c in enumerate(seen) if c == 0), len(seen))
+        acc = left[taxid]
+        return (new, seen, not acc.startswith("GCF"), sizes.get(acc, 0), acc)
+
+    while left and len(kept) < n:
+        taxid = min(left, key=key)
+        kept[taxid] = left.pop(taxid)
+        for i, t in enumerate(paths[taxid]):
+            counts[(i, t)] += 1
     stats["pilot_dropped"] = len(data) - len(kept)
     return kept
 
