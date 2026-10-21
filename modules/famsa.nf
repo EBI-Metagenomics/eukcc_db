@@ -11,14 +11,15 @@ process famsa {
     tuple val("${task.process}"), val('famsa'), env('FAMSA_VERSION'), topic: versions  // tool version, set in the script
 
     script:
+    // grep reads all the output: grep -m1 stops early, famsa gets SIGPIPE (exit 141)
     """
-    FAMSA_VERSION=\$(famsa 2>&1 | grep -m1 -o "ver\\. [^ ]*" | cut -d" " -f2)
+    FAMSA_VERSION=\$(famsa 2>&1 | grep -o "ver\\. [^ ]*" | sed -n 1p | cut -d" " -f2)
     famsa -t ${task.cpus} ${fasta} ${name}.aln
     """
 
     stub:
     """
-    FAMSA_VERSION=\$(famsa 2>&1 | grep -m1 -o "ver\\. [^ ]*" | cut -d" " -f2)
+    FAMSA_VERSION=\$(famsa 2>&1 | grep -o "ver\\. [^ ]*" | sed -n 1p | cut -d" " -f2)
     cp ${fasta} ${name}.aln
     """
 }

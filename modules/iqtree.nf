@@ -6,7 +6,7 @@ process modelfinder {
     tag "${clade}"
     label 'process_high'
     label 'process_long'
-    container 'biocontainers/iqtree:2.1.2--h56fc30b_0'
+    container 'biocontainers/iqtree:2.3.6--hdbdd923_0'
 
     input:
     tuple val(clade), path(fasta)             // (clade, supermatrix) of --modelfinder_clade
@@ -39,7 +39,7 @@ process iqtree {
     tag "${clade}"
     label 'process_high'
     label 'process_long'
-    container 'biocontainers/iqtree:2.1.2--h56fc30b_0'
+    container 'biocontainers/iqtree:2.3.6--hdbdd923_0'
 
     input:
     tuple val(clade), path(fasta), val(model)                                            // (clade, supermatrix, model)
