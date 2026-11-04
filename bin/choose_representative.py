@@ -144,10 +144,7 @@ def sample_evenly(
 
     logging.debug("There are {} species to sample from".format(avail))
     sampled = set()
-    # at_most=None: a single round, so one species from every bucket that has one
-    rounds = 0
-    while avail > 0 and (len(sampled) < at_most if at_most is not None else rounds < 1):
-        rounds += 1
+    while avail > 0 and len(sampled) < at_most:
         for clade, species in sample_list.items():
             if len(species) > 0:
                 # the last eligible species of the shuffled bucket (without protected
@@ -215,7 +212,7 @@ def main(**kwargs):
     metaeuk_set = sample_evenly(
         d,
         level=kwargs["balance_level"],
-        at_most=None if kwargs["metaeuk_per_phylum"] else kwargs["n_metaeuk"],
+        at_most=kwargs["n_metaeuk"],
         per_clade=1,
         ignore=testing_set.copy(),
         only_refseq=True,
@@ -265,12 +262,6 @@ if __name__ == "__main__":
     parser.add_argument("--n_testing", default=30, help="hold-out size", type=int)
     parser.add_argument("--n_training", default=45, help="calibration set size", type=int)
     parser.add_argument("--n_metaeuk", default=25, help="MetaEuk reference size", type=int)
-    parser.add_argument(
-        "--metaeuk_per_phylum",
-        action="store_true",
-        default=False,
-        help="MetaEuk reference: one RefSeq proteome from every phylum that has one (ignores --n_metaeuk)",
-    )
     parser.add_argument(
         "--testing_min_bucket",
         default=1,

@@ -44,7 +44,6 @@ process choose_representative {
     val(holdout_protect_ranks)                                   // ranks the hold-out never empties (--holdout_protect_ranks)
     val(calibration_size)                                        // species in the calibration set (--calibration_size)
     val(metaeuk_size)                                            // RefSeq proteomes in the MetaEuk set (--metaeuk_size)
-    val(metaeuk_per_phylum)                                      // true: one MetaEuk proteome per phylum (--metaeuk_per_phylum)
 
     output:
     path("species_classification.csv"), emit: info               // group, accession, role, taxid, lineage
@@ -70,7 +69,6 @@ process choose_representative {
          --testing_protect ${[holdout_protect_ranks].flatten().join(',')} \\
          --n_training ${calibration_size} \\
          --n_metaeuk ${metaeuk_size} \\
-         ${metaeuk_per_phylum ? '--metaeuk_per_phylum' : ''} \\
          abc
 
     mkdir -p fna/remaining fna/testing fna/training fna/metaeuk

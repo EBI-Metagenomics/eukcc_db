@@ -37,10 +37,10 @@ workflow genome_selection {
     size_filter(download_genome.out, params.minbp)
 
     // 2f. in: ncbi_table, [every genome that passed the size filter], taxdb, minbp,
-    // hold-out size/min species/protected ranks, calibration and MetaEuk sizes, MetaEuk per phylum
+    // hold-out size/min species/protected ranks, calibration and MetaEuk sizes
     choose_representative(ncbi_table, size_filter.out.map { _group, genome -> genome }.collect(), taxdb,
         params.minbp, params.holdout_size, params.holdout_min_species, params.holdout_protect_ranks,
-        params.calibration_size, params.metaeuk_size, params.metaeuk_per_phylum)
+        params.calibration_size, params.metaeuk_size)
 
     // 2g. the legacy emit names: "training" = fna/remaining, "bitscore" = fna/training;
     // together they are every genome that is not in the hold-out

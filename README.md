@@ -72,7 +72,6 @@ nextflow run . -profile docker --mode testing --db results/eukcc2_db_2026_10 --o
 | `--holdout_min_species` | 2 | the hold-out never takes a protected taxon below this many species, in any round: 2 keeps at least one genome of each |
 | `--holdout_protect_ranks` | `['phylum', 'order']` | ranks the hold-out never empties |
 | `--holdout_size` / `--metaeuk_size` / `--calibration_size` | 30 / 25 / 45 | sample sizes; sampling takes one species per phylum at a time and checks the size only after going through all phyla, so a sample can be larger |
-| `--metaeuk_per_phylum` | false | MetaEuk reference with one RefSeq proteome from every phylum that has one; `--metaeuk_size` is ignored |
 | `--max_leaf_gap_fraction` | 0.9 | leaves with more gaps in the concatenation leave the tree; `null` = report only |
 | `--modelfinder` / `--iqmodel` | true / `LG+R7` | select the model, or fix it |
 | `--iqtree` | true | false = FastTree |

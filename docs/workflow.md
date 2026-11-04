@@ -80,10 +80,11 @@ the database are selected.
     disappeared from the database. Now the hold-out never takes the last species of a
     phylum or order, so no lineage disappears from the database because of it.
   - **MetaEuk set:** RefSeq species whose annotated proteomes form the MetaEuk reference
-    (2h, 3a). By default, about 25 species, taken one per phylum at a time, as in the
-    legacy workflow. With `--metaeuk_per_phylum`, one species of every phylum that has a
-    RefSeq genome; this is new and still needs to be tested. Hold-out species never enter
-    the MetaEuk set, and the MetaEuk species are also leaves of the tree.
+    (2h, 3a). About 25 species, taken one per phylum per round, as in the legacy workflow.
+    The size is checked only after each full round, so every phylum with a RefSeq genome
+    gets one species and the set can be larger than 25. Every annotated protein of these
+    proteomes goes into the MetaEuk database, with no clustering. Hold-out species never
+    enter the MetaEuk set, and the MetaEuk species are also leaves of the tree.
 - **2g. `split_clades`:** removes the hold-out genomes and splits the rest by NCBI
   division: fungi, plant and protozoa.
 - **2h. `genome2faa`:** downloads the annotated RefSeq proteomes of the MetaEuk set.
