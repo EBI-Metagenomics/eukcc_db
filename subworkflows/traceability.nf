@@ -51,8 +51,10 @@ workflow traceability {
         .mix(ncbi_table, genetic_codes, taxonomy_info)
         .mix(zip_stats)
         .collect()
-    // 5b. in: [db_<clade>/], taxdb, [provenance tables], species_classification.csv, versions.yml, release name (--name),
+    // release name: --name, otherwise YYYY_MM of --cutoff_date, otherwise of the day of the run
+    def name = params.name ?: (params.cutoff_date ?: params.run_stamp).toString().take(7).replace('-', '_')
+    // 5b. in: [db_<clade>/], taxdb, [provenance tables], species_classification.csv, versions.yml, release name,
     // run parameters, [assembly_summary.txt]
-    package_db(dbs.collect(), taxdb, provenance, classification, versions, params.name, params,
+    package_db(dbs.collect(), taxdb, provenance, classification, versions, name, params,
                summaries.map { _catalogue, _group, summary -> summary }.collect())
 }

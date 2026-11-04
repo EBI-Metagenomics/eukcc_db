@@ -90,9 +90,10 @@ workflow build_db {
     hmmfetch_db(calibrated.join(get_SCMG.out))
 
     // tree: the model comes from ModelFinder on one sub-database unless it is off
-    if (params.iqtree) {
+    // .toString().toBoolean(): Nextflow 26 passes --iqtree false from the command line as a string
+    if (params.iqtree.toString().toBoolean()) {
         // in: (clade, supermatrix) of params.modelfinder_clade only, seed (--seed); out: model.txt
-        model = params.modelfinder
+        model = params.modelfinder.toString().toBoolean()
             ? modelfinder(horizontal.out.filter { clade, _supermatrix -> clade == params.modelfinder_clade }, params.seed)
                 .model.map { model_file -> model_file.text.trim() }.first()
             : channel.value(params.iqmodel)

@@ -36,21 +36,40 @@ of every step.
 ## Running
 
 ```bash
+# the NCBI taxonomy of a month (required)
+TAXDUMP=https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump_archive/taxdmp_2026-11-01.zip
+
 # EBI Codon: SLURM + Singularity, resources per process in conf/codon.config
-nextflow run . -profile codon_slurm --outdir results --name 2026_10
+nextflow run . -profile codon_slurm --outdir results --taxdump $TAXDUMP
 
 # local
-nextflow run . -profile docker --outdir results --name 2026_10
+nextflow run . -profile docker --outdir results --taxdump $TAXDUMP
 
 # Apple silicon: the images are linux/amd64
-nextflow run . -profile docker,arm --outdir results --name 2026_10
+nextflow run . -profile docker,arm --outdir results --taxdump $TAXDUMP
 
 # Test
 nextflow run . -profile test,docker -stub-run --outdir results_stub
 
 # Evaluation on MAGs simulated from the hold-out genomes
-nextflow run . -profile docker --mode testing --db results/eukcc2_db_2026_10 --outdir results
+nextflow run . -profile docker --mode testing --db results/eukcc2_db_<YYYY_MM> --outdir results
 ```
+
+### A monthly release
+
+The release `2026_11`: genomes released up to the cut-off date and the NCBI taxonomy of
+that month, with the tree model fixed (`--iqmodel` is only used with `--modelfinder false`).
+
+```bash
+nextflow run . -profile codon_slurm --outdir results_2026_11 \
+    --name 2026_11 \
+    --cutoff_date 2026-11-01 \
+    --taxdump https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump_archive/taxdmp_2026-11-01.zip \
+    --modelfinder false --iqmodel LG+R10
+```
+
+The database goes to `results_2026_11/eukcc2_db_2026_11/`, with a `README.md` that records
+the version, the sources and the parameters of the build.
 
 ## Main parameters
 
@@ -58,9 +77,9 @@ nextflow run . -profile docker --mode testing --db results/eukcc2_db_2026_10 --o
 |---|---|---|
 | `--mode` | `build` | `build` a database, or `testing` to evaluate one |
 | `--outdir` | required | |
-| `--name` | `dev` | the database goes to `<outdir>/eukcc2_db_<name>/` |
+| `--name` | `YYYY_MM` of `--cutoff_date`, otherwise of the run | the database goes to `<outdir>/eukcc2_db_<name>/` |
 | `--cachedir` | `cache` | genomes and PANTHER, kept between runs (`storeDir`) |
-| `--taxdump` | `taxdmp_2026-10-01.zip` (NCBI monthly archive) | loaded into the ete3 `taxa.sqlite` that ships with the database; the genetic codes always come from it |
+| `--taxdump` | required | the NCBI dump, e.g. `taxdump_archive/taxdmp_YYYY-MM-01.zip` (monthly archive); loaded into the ete3 `taxa.sqlite` that ships with the database; the genetic codes always come from it |
 | `--taxdb` | | a ready `taxa.sqlite` instead |
 | `--panther` / `--panther_url` | PANTHER 16.0 public tarball (3.9 GB) | a directory holding `books/` |
 | `--summaries` | download | a directory with `<catalogue>_<group>.txt`, to pin the NCBI snapshot |
@@ -73,7 +92,7 @@ nextflow run . -profile docker --mode testing --db results/eukcc2_db_2026_10 --o
 | `--holdout_protect_ranks` | `['phylum', 'order']` | ranks the hold-out never empties |
 | `--holdout_size` / `--metaeuk_size` / `--calibration_size` | 30 / 25 / 45 | sample sizes; sampling takes one species per phylum at a time and checks the size only after going through all phyla, so a sample can be larger |
 | `--max_leaf_gap_fraction` | 0.9 | leaves with more gaps in the concatenation leave the tree; `null` = report only |
-| `--modelfinder` / `--iqmodel` | true / `LG+R7` | select the model, or fix it |
+| `--modelfinder` / `--iqmodel` | true / | select the model, or fix it: `--iqmodel` is required with `--modelfinder false` (thesis: `LG+R7`) |
 | `--iqtree` | true | false = FastTree |
 | `--db` | | `--mode testing`: the database to evaluate (`eukcc2_db_<name>/`) |
 | `--contamination_source` | `self` | `--mode testing`: contaminant of each simulated MAG: the genome itself (`self`), another hold-out species (`other`) or `both` |

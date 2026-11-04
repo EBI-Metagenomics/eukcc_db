@@ -62,6 +62,13 @@ workflow {
         error "--outdir is required"
     }
     if (params.mode == 'build') {
+        if (!params.taxdump) {
+            error "--taxdump is required, e.g. https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump_archive/taxdmp_YYYY-MM-01.zip"
+        }
+        // Nextflow 26 passes --flag false from the command line as the string 'false'
+        if (!params.modelfinder.toString().toBoolean() && !params.iqmodel) {
+            error "--modelfinder false needs --iqmodel, e.g. LG+R7"
+        }
         build()
     } else if (params.mode == 'testing') {
         testing()

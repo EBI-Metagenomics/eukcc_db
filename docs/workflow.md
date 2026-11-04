@@ -195,7 +195,7 @@ completeness and contamination, and the placement markers.
   so the columns match.
 - **4o-i. `modelfinder`:** chooses the substitution model once, on the `base` supermatrix,
   and every sub-database uses it. When ModelFinder is off, the model is fixed by the user
-  (`--iqmodel`, `LG+R7` by default, the model of Paul Saary's thesis).
+  (`--iqmodel`, required then; the model of Paul Saary's thesis is `LG+R7`).
 - **4o-ii. `iqtree`:** builds the maximum likelihood tree from the supermatrix, with that
   model and a fixed seed.
 - **4o-iii. `fasttree`:** alternative to 4o-ii, faster and less accurate

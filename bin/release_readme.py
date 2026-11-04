@@ -74,6 +74,7 @@ def readme(db, summaries):
         info[i["db_clade"]] = i
     base = info.get("base") or next(iter(info.values()))
     ver = version(params)
+    dirname = os.path.basename(os.path.normpath(db))
     run_day = params["run_stamp"][:10]
     cutoff = params.get("cutoff_date")
 
@@ -107,7 +108,7 @@ def readme(db, summaries):
         "nextflow run EBI-Metagenomics/eukcc_db -profile codon_slurm \\",
         f"    --name {ver} --outdir <outdir> \\",
         f"    --summaries <outdir of this build>/provenance/ncbi/summaries \\",
-        f"    --taxdb eukcc2_db_{params['name']}/etetoolkit/taxa.sqlite \\",
+        f"    --taxdb {dirname}/etetoolkit/taxa.sqlite \\",
         f"    --panther_url {params['panther_url']} --panther_version {params['panther_version']} \\",
         (f"    --cutoff_date {cutoff} " if cutoff else "    ")
         + f"--modelfinder {flag(params['modelfinder'])} --iqmodel {params['iqmodel']} --seed {params['seed']}",
@@ -137,7 +138,7 @@ def readme(db, summaries):
 | | |
 |---|---|
 | version | **{ver}** (YYYY_MM of {"the cut-off date" if cutoff else "the build"}) |
-| directory | `eukcc2_db_{params['name']}/` |
+| directory | `{dirname}/` |
 | created | {base.get('db_creation_date', '?')} |
 | NCBI cut-off | {cutoff or "none: every assembly in the NCBI summaries below"} |
 | pipeline | {run.get('pipeline', '?')}, Nextflow {run.get('nextflow', '?')} |
