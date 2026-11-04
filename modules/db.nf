@@ -87,8 +87,9 @@ process build_report {
     """
 }
 
-// The release directory: the four sub-databases, the taxonomy EukCC must use, and the
-// provenance of the build. Fails the run if the structural checks do not pass.
+// The release directory: the four sub-databases, the taxonomy EukCC must use, the
+// provenance of the build and a README.md (version YYYY_MM, sources, parameters).
+// Fails the run if the structural checks do not pass.
 process package_db {
     label 'process_single'
     container 'biocontainers/python:3.9--1'
@@ -101,6 +102,7 @@ process package_db {
     path(versions, stageAs: 'versions.yml')                      // tool versions
     val(name)                                                    // release name (--name)
     val(run_params)                                              // every parameter of the run, written to params.json
+    path(summaries, stageAs: 'summaries/*')                      // the assembly_summary.txt files (md5 in README.md)
 
     output:
     path("eukcc2_db_${name}")                                    // the release directory
@@ -124,6 +126,7 @@ process package_db {
         > \$D/provenance/run.txt
 
     check_db.py \$D --classification species_classification.csv
+    release_readme.py --db \$D --summaries summaries/* --output \$D/README.md
     """
 
     stub:
@@ -132,5 +135,6 @@ process package_db {
     mkdir -p \$D/etetoolkit \$D/provenance
     cp -rL ${dbs} \$D/
     cp -L prov/* species_classification.csv versions.yml \$D/provenance/
+    touch \$D/README.md
     """
 }

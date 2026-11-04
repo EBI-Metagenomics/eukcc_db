@@ -228,4 +228,8 @@ of the database and checks that all expected files are present.
   (`etetoolkit/`) and the provenance of the build. Before finishing, it checks the
   structure of every sub-database (for example, that the blocks add up to the supermatrix
   and that every placement profile has a `GA` line), and the run fails if a check does not
-  pass.
+  pass. Last, `release_readme.py` writes `README.md`: the version (`YYYY_MM` of
+  `--cutoff_date`, otherwise of the day the run started), where each input came from (NCBI
+  summaries with their md5, the taxonomy dump with its md5 and date, PANTHER), the main
+  parameters, tool versions, the counts of each sub-database and the command to rebuild it.
+  Example: `docs/release_example/README.md`.

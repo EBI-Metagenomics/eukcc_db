@@ -83,6 +83,7 @@ nextflow run . -profile docker --mode testing --db results/eukcc2_db_2026_10 --o
 ```
 <outdir>/
 ├── eukcc2_db_<name>/            the database (--db for EukCC)
+│   ├── README.md                version (YYYY_MM), sources, parameters and contents
 │   ├── db_base/
 │   ├── db_fungi/
 │   ├── db_plant/

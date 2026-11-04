@@ -51,6 +51,8 @@ workflow traceability {
         .mix(ncbi_table, genetic_codes, taxonomy_info)
         .mix(zip_stats)
         .collect()
-    // 5b. in: [db_<clade>/], taxdb, [provenance tables], species_classification.csv, versions.yml, release name (--name), run parameters
-    package_db(dbs.collect(), taxdb, provenance, classification, versions, params.name, params)
+    // 5b. in: [db_<clade>/], taxdb, [provenance tables], species_classification.csv, versions.yml, release name (--name),
+    // run parameters, [assembly_summary.txt]
+    package_db(dbs.collect(), taxdb, provenance, classification, versions, params.name, params,
+               summaries.map { _catalogue, _group, summary -> summary }.collect())
 }
