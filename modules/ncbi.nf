@@ -41,6 +41,7 @@ process filter_release_date {
 // One genome per species of a group (RefSeq first), land plants and animals excluded.
 // In genbank_fill_groups, a GenBank genome enters only for a phylum without RefSeq.
 // Genomes far smaller than their relatives (partial assemblies) are dropped.
+// The accessions of --exclude_genomes are dropped before one genome per species.
 // Writes the count left after each filter.
 process zip_summary {
     tag "${group}"
@@ -52,6 +53,7 @@ process zip_summary {
     val(genbank_fill_groups)                                                         // groups where GenBank fills only the phyla without RefSeq (--genbank_fill_groups)
     val(min_relative_size)                                                           // minimum size as a fraction of the genus median; '' = off (--min_relative_size)
     val(pilot_species)                                                               // species kept per division; '' = all (--pilot_species)
+    path(exclude_genomes, stageAs: 'exclude/*')                                      // accession<TAB>reason never to keep; [] = none (--exclude_genomes)
 
     output:
     tuple val(group), path("${group}_combined.csv"), emit: table                     // (group, <group>_combined.csv: group,taxid,accession of every candidate)
@@ -63,11 +65,12 @@ process zip_summary {
     def fill = group in genbank_fill_groups ? '--genbank_fill' : ''
     def relsize = min_relative_size ? "--min_relative_size ${min_relative_size}" : ''
     def pilot = pilot_species ? "--pilot ${pilot_species}" : ''
+    def exclude = exclude_genomes ? "--exclude ${exclude_genomes}" : ''
     """
     ETE3_VERSION=\$(python -c "import ete3; print(ete3.__version__)")
     export HOME=\$PWD LC_ALL=C
     mkdir -p .etetoolkit && ln -sf \$PWD/taxa.sqlite .etetoolkit/taxa.sqlite
-    zip_ncbi.py --label ${group} --stats ${group}_stats.tsv ${fill} ${relsize} ${pilot} ${group}_combined.csv *.txt
+    zip_ncbi.py --label ${group} --stats ${group}_stats.tsv ${fill} ${relsize} ${pilot} ${exclude} ${group}_combined.csv *.txt
     """
 
     stub:

@@ -51,6 +51,19 @@ def phyla(path, taxids):
     return out
 
 
+def read_exclude(path):
+    """{accession: reason} of an exclude_genomes.tsv (same reader as zip_ncbi.py)"""
+    out = {}
+    with open(path) as fin:
+        for line in fin:
+            if line.startswith("#") or not line.strip():
+                continue
+            acc, _, reason = line.rstrip("\n").partition("\t")
+            if acc.strip() != "accession":
+                out[acc.strip()] = reason.strip()
+    return out
+
+
 def lines(path):
     with open(path) as fin:
         return {x.strip() for x in fin if x.strip()}
@@ -94,6 +107,7 @@ def main():
     ap.add_argument("--minbp", default="minbp")
     ap.add_argument("--taxdb", help="ete3 taxa.sqlite, for coverage.tsv")
     ap.add_argument("--genetic-codes", help="accession, taxid, nuclear genetic code")
+    ap.add_argument("--exclude-genomes", help="exclude_genomes.tsv: accessions dropped by zip_ncbi.py --exclude")
     args = ap.parse_args()
 
     downloaded, sized, predicted = lines(args.downloaded), lines(args.sized), lines(args.predicted)
@@ -146,6 +160,26 @@ def main():
                     elif sub in alignments and acc not in alignments[sub]:
                         exclusions.append((acc, group, sub, "horizontal", "no placement marker"))
 
+    # the hand-made list: every summary row it matches (an entry without a version matches
+    # every version), and a warning for an entry no summary has (typo, suppressed assembly)
+    exclude = read_exclude(args.exclude_genomes) if args.exclude_genomes else {}
+    found, seen = set(), set()
+    for p in args.summaries if exclude else []:
+        group = os.path.basename(p).rsplit(".", 1)[0].split("_", 1)[1]
+        with open(p) as fin:
+            for line in fin:
+                acc = line.split("\t", 1)[0]
+                key = acc if acc in exclude else acc.split(".")[0]
+                if line.startswith("#") or key not in exclude or (acc, group) in seen:
+                    continue
+                seen.add((acc, group))
+                found.add(key)
+                exclusions.append((acc, group, "-", "zip_summary",
+                                   "listed in exclude_genomes: {}".format(exclude[key])))
+    for key in sorted(set(exclude) - found):
+        print("WARNING: {} is listed in exclude_genomes but not in the NCBI assembly summaries".format(key), file=sys.stderr)
+        exclusions.append((key, "-", "-", "zip_summary", "listed in exclude_genomes, not found in the NCBI assembly summaries"))
+
     with open("exclusions.tsv", "w") as fout:
         fout.write("accession\tgroup\tsubdb\tstage\treason\n")
         for row in sorted(exclusions):
@@ -182,6 +216,7 @@ def main():
         ("ncbi_genbank", "rows in the GenBank assembly_summary.txt"),
         ("rows", "rows after the release-date cut-off (= all rows without --cutoff_date)"),
         ("reference_full", "reference/representative genome with a Full assembly"),
+        ("user_excluded", "dropped: listed in exclude_genomes"),
         ("species", "one genome per species (RefSeq preferred)"),
         ("taxid_from_name", "taxid deleted by NCBI, replaced by the taxon the organism name resolves to"),
         ("unknown_taxid", "dropped: taxid not in the taxonomy and organism name not found"),

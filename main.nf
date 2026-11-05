@@ -53,7 +53,8 @@ workflow build {
                  inputs.out.panther_db,
                  inputs.out.taxdb,
                  inputs.out.taxonomy_info,
-                 genome_selection.out.genetic_codes)
+                 genome_selection.out.genetic_codes,
+                 genome_selection.out.exclude_genomes)
 }
 
 

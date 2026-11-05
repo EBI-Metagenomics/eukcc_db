@@ -13,7 +13,8 @@ of every step.
 ## How a database is built
 
 - NCBI assembly_summary.txt per division (fungi, plant, protozoa; RefSeq + GenBank)
-  - reference genomes with a Full assembly, one per species, RefSeq first
+  - reference genomes with a Full assembly, minus the bad references of `assets/exclude_genomes.tsv`,
+    one per species, RefSeq first
   - fungi: GenBank only for phyla without any RefSeq species
   - drop Embryophyta and Metazoa; drop assemblies < 2 Mb or < 10% of their genus median
   - hold-out: ~30 RefSeq species, one per phylum at a time, never the last genome of a phylum or an order,
@@ -85,6 +86,7 @@ the version, the sources and the parameters of the build.
 | `--summaries` | download | a directory with `<catalogue>_<group>.txt`, to pin the NCBI snapshot |
 | `--pilot_species` | | pilot run: keep only N species per division, spread over the taxonomy (a new phylum first, then a new class, order, family, genus; RefSeq and small genomes first on ties); no files to prepare |
 | `--cutoff_date` | | `YYYY-MM-DD`: only assemblies released up to that date |
+| `--exclude_genomes` | `assets/exclude_genomes.tsv` | bad reference genomes that never enter the database (see below); `false` = none |
 | `--minbp` | 2000000 | minimum assembly size (the smallest nuclear genomes, Microsporidia, are ~2.2 Mb) |
 | `--min_relative_size` | 0.1 | drop genomes below this fraction of the median size of their genus (or family): partial assemblies; `null` = off |
 | `--genbank_fill_groups` | `['fungi']` | divisions where GenBank genomes enter only for phyla without RefSeq species |
@@ -96,6 +98,12 @@ the version, the sources and the parameters of the build.
 | `--iqtree` | true | false = FastTree |
 | `--db` | | `--mode testing`: the database to evaluate (`eukcc2_db_<name>/`) |
 | `--contamination_source` | `self` | `--mode testing`: contaminant of each simulated MAG: the genome itself (`self`), another hold-out species (`other`) or `both` |
+
+### Excluded genomes
+
+Some NCBI reference genomes can have low quality and are kept out.
+`--exclude_genomes` is a TSV with a header and two columns, `accession` and `reason`;
+lines starting with `#` are comments.
 
 ## Outputs
 
@@ -135,8 +143,10 @@ Here we include some outputs that are not present on the original workflow:
   candidates, hold-out, genomes in the sub-database, leaves and genomes with a
   non-standard genetic code.
 - `provenance/exclusions.tsv`: every candidate that did not become a leaf, with the stage
-  and the reason (download, size, hold-out, no proteome, search failed, too many gaps, no
-  placement marker).
+  and the reason (listed in `--exclude_genomes`, download, size, hold-out, no proteome,
+  search failed, too many gaps, no placement marker).
+- `provenance/exclude_genomes.tsv`: the `--exclude_genomes` list of the build; its md5 is
+  in the release `README.md`.
 - `provenance/markers/find_tree_MG_<subdb>.log`: every iteration of the greedy marker selection.
 
 ### iTOL

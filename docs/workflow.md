@@ -63,6 +63,12 @@ the database are selected.
   - Land plants (Embryophyta) and animals are removed, so `plant` holds the algae.
   - Finally, it drops genomes much smaller than their relatives (less than 10% of the
     median size of the genus), which are usually partial assemblies.
+  - Not in the legacy code: before one genome per species is chosen, it drops the
+    accessions listed in `--exclude_genomes` (`assets/exclude_genomes.tsv`), bad reference
+    genomes found by hand (e.g. `GCA_040437675.1`, an almost fully duplicated
+    *Halimeda opuntia* assembly). Another assembly of the same species can still enter.
+    The list is copied to `provenance/exclude_genomes.tsv`, and each accession gets a row in
+    `exclusions.tsv` (with a warning if no NCBI summary has it).
 
   The number of genomes removed by each filter goes to `provenance/build_summary.tsv`.
 - **2c. `genetic_codes`:** reads the genetic code of each candidate species from the

@@ -18,6 +18,7 @@ workflow traceability {
     taxdb            // taxa.sqlite
     taxonomy_info    // taxonomy.tsv
     genetic_codes    // genetic_codes.tsv
+    exclude_genomes  // exclude_genomes.tsv, or [] without a list
 
     main:
     // 5a. where every genome went, the counts of each sub-database, lineage coverage.
@@ -35,8 +36,13 @@ workflow traceability {
         panther_db.map { all_hmm, _h3f, _h3i, _h3m, _h3p -> all_hmm },
         taxdb,
         genetic_codes,
-        params.minbp
+        params.minbp,
+        exclude_genomes
     )
+    build_report.out.exclusions
+        .splitCsv(sep: '\t', header: true)
+        .filter { row -> row.reason.endsWith('not found in the NCBI assembly summaries') }
+        .subscribe { row -> log.warn "--exclude_genomes: ${row.accession} is not in the NCBI assembly summaries (typo or suppressed assembly?)" }
 
     // "tool: version" of every tool, read from the containers (topic channel)
     versions = channel.topic('versions')
@@ -50,6 +56,7 @@ workflow traceability {
         .mix(build_report.out.exclusions, build_report.out.summary, build_report.out.coverage)
         .mix(ncbi_table, genetic_codes, taxonomy_info)
         .mix(zip_stats)
+        .mix(exclude_genomes.filter { list -> list }.collectFile(name: 'exclude_genomes.tsv'))   // the list as given, under a fixed name
         .collect()
     // release name: --name, otherwise YYYY_MM of --cutoff_date, otherwise of the day of the run
     def name = params.name ?: (params.cutoff_date ?: params.run_stamp).toString().take(7).replace('-', '_')

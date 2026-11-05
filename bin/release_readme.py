@@ -3,7 +3,7 @@
 the parameters of the build, its contents and how to rebuild it.
 
 Reads only what the release directory already holds (provenance/params.json, run.txt,
-taxonomy.tsv, versions.yml, build_summary.tsv, db_*/db_info.json), plus the NCBI
+taxonomy.tsv, exclude_genomes.tsv, versions.yml, build_summary.tsv, db_*/db_info.json), plus the NCBI
 assembly_summary.txt files of the run, to record their md5.
 
     release_readme.py --db eukcc2_db_<name>/ --output eukcc2_db_<name>/README.md
@@ -100,6 +100,13 @@ def readme(db, summaries):
     else:
         tax_src = (f"`{tax.get('source', params.get('taxdump'))}` (`--taxdump`); nodes.dmp dated "
                    f"{tax.get('ncbi_date', '?')}, md5 `{tax.get('md5', '?')}`, loaded with ete3 {tax.get('ete3', '?')}")
+    excl = os.path.join(prov, "exclude_genomes.tsv")
+    if os.path.exists(excl):
+        n = sum(1 for line in open(excl) if line.strip() and not line.startswith(("#", "accession\t")))
+        excl_src = (f"`{params['exclude_genomes']}` (`--exclude_genomes`): {n} accessions, md5 `{md5(excl)}`, "
+                    f"copied to `provenance/exclude_genomes.tsv`")
+    else:
+        excl_src = "none"
     panther_src = (f"local copy `{params['panther']}` (`--panther`) of `{params['panther_url']}`"
                    if params.get("panther") else f"`{params['panther_url']}`")
 
@@ -109,6 +116,8 @@ def readme(db, summaries):
         f"    --name {ver} --outdir <outdir> \\",
         f"    --summaries <outdir of this build>/provenance/ncbi/summaries \\",
         f"    --taxdb {dirname}/etetoolkit/taxa.sqlite \\",
+        (f"    --exclude_genomes {dirname}/provenance/exclude_genomes.tsv \\" if os.path.exists(excl)
+         else "    --exclude_genomes false \\"),
         f"    --panther_url {params['panther_url']} --panther_version {params['panther_version']} \\",
         (f"    --cutoff_date {cutoff} " if cutoff else "    ")
         + f"--modelfinder {flag(params['modelfinder'])} --iqmodel {params['iqmodel']} --seed {params['seed']}",
@@ -119,6 +128,8 @@ def readme(db, summaries):
         ("`--divisions`", ", ".join(f"{g}/{cat}" for g, cat in params["divisions"]), "NCBI divisions read"),
         ("`--genbank_fill_groups`", ", ".join(params["genbank_fill_groups"]) or "none",
          "GenBank genomes only for phyla without RefSeq species"),
+        ("`--exclude_genomes`", f"{c('base', 'user_excluded')} dropped" if os.path.exists(excl) else "none",
+         "genomes listed by hand that never enter the database"),
         ("`--minbp`", f"{params['minbp']:,}", "minimum assembly size (bp)"),
         ("`--min_relative_size`", params["min_relative_size"], "minimum size as a fraction of the genus median"),
         ("`--holdout_size`", params["holdout_size"], f"RefSeq species kept out of every sub-database ({holdout} taken)"),
@@ -161,6 +172,7 @@ each genome. Only `db_base/` carries the MetaEuk reference (`metaeukdb/`).
 | NCBI genomes | {ncbi_src} |
 | NCBI taxonomy | {tax_src} |
 | PANTHER library | {panther_src}, version {params['panther_version']} |
+| excluded genomes | {excl_src} |
 
 NCBI assembly summaries of this build:
 
@@ -185,6 +197,7 @@ Every parameter of the run is in `provenance/params.json`.
 | `provenance/coverage.tsv` | taxa covered by each sub-database |
 | `provenance/species_classification.csv` | role of every genome (hold-out, MetaEuk, calibration, remaining) |
 | `provenance/taxonomy.tsv` | the taxonomy dump: source, md5, date |
+| `provenance/exclude_genomes.tsv` | the genomes excluded by hand, with the reason |
 | `provenance/params.json`, `run.txt`, `versions.yml` | parameters, run and tool versions |
 
 ## Rebuild

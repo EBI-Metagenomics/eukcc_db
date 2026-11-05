@@ -12,7 +12,29 @@ ncbi = NCBITaxa()
 ignorelist = set(["3193", "33208"])
 
 
-def merge_ncbi(data, path, stats, sizes, names):
+def read_exclude(path):
+    """{accession: reason} of an exclude_genomes.tsv: a header (accession, reason), # comments"""
+    out = {}
+    with open(path) as fin:
+        for line in fin:
+            if line.startswith("#") or not line.strip():
+                continue
+            acc, _, reason = line.rstrip("\n").partition("\t")
+            if acc.strip() != "accession":
+                out[acc.strip()] = reason.strip()
+    return out
+
+
+def listed(acc, exclude):
+    """the entry of the list an accession matches: itself, or its accession without the
+    version when the entry has none (every version); None if not listed"""
+    for key in (acc, acc.split(".")[0]):
+        if key in exclude:
+            return key
+    return None
+
+
+def merge_ncbi(data, path, stats, sizes, names, exclude):
     with open(path) as fin:
         for line in fin:
             if line.startswith("#"):
@@ -25,6 +47,12 @@ def merge_ncbi(data, path, stats, sizes, names):
                 if row[4] not in ("representative genome", "reference genome") or row[13] != "Full":
                     continue
                 stats["reference_full"] += 1
+                # bad references listed by hand: out before one genome per species, so another
+                # assembly of the species can still represent it
+                if listed(row[0], exclude):
+                    logging.info("{} ({}) is listed in exclude_genomes: dropped".format(row[0], row[7]))
+                    stats["user_excluded"] += 1
+                    continue
                 # get acc and taxid
                 acc = row[0]
                 taxid = row[6]
@@ -161,16 +189,17 @@ def pilot(data, sizes, n, stats):
     return kept
 
 
-def main(files, outputfile, label, statsfile, fill, min_relative_size, n_pilot=None):
+def main(files, outputfile, label, statsfile, fill, min_relative_size, n_pilot=None, exclude_file=None):
     # simple dict storing taxid and accession for each entry
     data = defaultdict(str)
     stats = defaultdict(int)
     sizes = {}
     names = {}
+    exclude = read_exclude(exclude_file) if exclude_file else {}
 
     # iterate over the files given
     for path in files:
-        data = merge_ncbi(data, path, stats, sizes, names)
+        data = merge_ncbi(data, path, stats, sizes, names, exclude)
     stats["species"] = len(data)
 
     # a taxid NCBI deleted (delnodes.dmp) that the summary still uses: fall back to the
@@ -211,7 +240,10 @@ def main(files, outputfile, label, statsfile, fill, min_relative_size, n_pilot=N
 
     if statsfile:
         with open(statsfile, "w") as fout:
-            steps = ["rows", "reference_full", "species", "taxid_from_name", "unknown_taxid"]
+            steps = ["rows", "reference_full"]
+            if exclude_file:
+                steps.append("user_excluded")
+            steps += ["species", "taxid_from_name", "unknown_taxid"]
             if fill:
                 steps.append("genbank_fill_dropped")
             steps.append("excluded_lineage")
@@ -240,6 +272,7 @@ parser.add_argument(
     default=None,
     help="drop genomes below this fraction of the median size of their genus/family",
 )
+parser.add_argument("--exclude", default=None, help="exclude_genomes.tsv: accessions that never enter the database")
 parser.add_argument("--pilot", type=int, default=None, help="keep only this many species (pilot run)")
 parser.add_argument("output", type=str, help="path to output file")
 parser.add_argument("summaries", nargs="+", help="path to all the sumamry files")
@@ -257,4 +290,4 @@ elif args.debug:
 logging.basicConfig(format="%(asctime)s %(message)s", datefmt="%m/%d/%Y %H:%M:%S: ", level=logLevel)
 
 args = parser.parse_args()
-main(args.summaries, args.output, args.label, args.stats, args.genbank_fill, args.min_relative_size, args.pilot)
+main(args.summaries, args.output, args.label, args.stats, args.genbank_fill, args.min_relative_size, args.pilot, args.exclude)

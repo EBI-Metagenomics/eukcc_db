@@ -10,18 +10,24 @@ workflow genome_selection {
     taxdb           // taxa.sqlite
 
     main:
+    // the hand-made list of genomes that never enter the database; [] = none. On the command
+    // line --exclude_genomes false (or null) arrives as a string
+    exclude_genomes = params.exclude_genomes && !(params.exclude_genomes.toString() in ['false', 'null', 'true'])
+        ? file(params.exclude_genomes, checkIfExists: true) : []
+
     // 2a. only with --cutoff_date. in: (catalogue, group, summary), cut-off date
     dated = params.cutoff_date ? filter_release_date(summaries, params.cutoff_date) : summaries
 
     // 2b. one genome per species. in: (group, [the RefSeq and GenBank summaries of the group], taxdb),
-    // GenBank fill groups, min_relative_size and pilot_species ('' = off)
+    // GenBank fill groups, min_relative_size and pilot_species ('' = off), exclude_genomes ([] = none)
     zip_summary(dated
         .groupTuple(by: 1)                                           // ([catalogues], group, [summaries])
         .map { _catalogues, group, group_summaries -> tuple(group, group_summaries) }
         .combine(taxdb),
         params.genbank_fill_groups,
         params.min_relative_size ?: '',
-        params.pilot_species ?: '')
+        params.pilot_species ?: '',
+        exclude_genomes)
     // the candidates of the three groups in one file: group,taxid,accession
     ncbi_table = zip_summary.out.table.map { _group, candidates_csv -> candidates_csv }
         .collectFile(name: 'ncbi_table.txt', sort: { candidates_csv -> candidates_csv.name }).first()
@@ -64,4 +70,5 @@ workflow genome_selection {
         .mix(split_clades.out.plant)
         .mix(split_clades.out.fungi)
     metaeuk_proteomes = genome2faa.out                               // <accession>.faa
+    exclude_genomes = exclude_genomes                                // exclude_genomes.tsv, or [] without a list
 }

@@ -62,6 +62,7 @@ process build_report {
     path(taxdb, stageAs: 'taxa.sqlite')                          // taxa.sqlite
     path(codes, stageAs: 'genetic_codes.tsv')                    // accession, taxid, nuclear genetic code
     val(minbp)                                                   // minimum genome size in bp (--minbp)
+    path(exclude_genomes, stageAs: 'exclude_genomes.tsv')        // accessions dropped by zip_summary; [] = none (--exclude_genomes)
 
     output:
     path("exclusions.tsv"), emit: exclusions                     // where every candidate was removed and why
@@ -69,6 +70,7 @@ process build_report {
     path("coverage.tsv"), emit: coverage                         // groups and phyla each clade covers
 
     script:
+    def exclude = exclude_genomes ? '--exclude-genomes exclude_genomes.tsv' : ''
     """
     build_report.py \\
         --summaries summaries/* \\
@@ -83,7 +85,7 @@ process build_report {
         --panther-families \$(grep -c '^NAME' ${panther_hmm}) \\
         --minbp ${minbp} \\
         --taxdb taxa.sqlite \\
-        --genetic-codes genetic_codes.tsv
+        --genetic-codes genetic_codes.tsv ${exclude}
     """
 }
 
