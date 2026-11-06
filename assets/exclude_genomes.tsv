@@ -1,0 +1,5 @@
+# Genomes that never enter the database (--exclude_genomes). accession with its version,
+# or without one to drop every version. Applied before the one-genome-per-species step.
+accession	reason
+GCA_040437675.1	Evidence of high-degree of duplication in this assembly likely due to contamination (genome length diverges from expected length for this species)
+GCA_963931725.1	Meta-assembly of SAGs showing evidence of contamination (genome length diverges from expected length for this species, form long branch in phylogeny)
