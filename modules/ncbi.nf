@@ -76,7 +76,10 @@ process zip_summary {
     stub:
     """
     ETE3_VERSION=\$(python -c "import ete3; print(ete3.__version__)")
-    awk -F'\\t' -v g=${group} '!/^#/ && (\$5 == "reference genome" || \$5 == "representative genome") {print g","\$7","\$1}' *.txt | head -4 > ${group}_combined.csv
+    # the accessions of --exclude_genomes (exact match) are out before the first 4 are taken
+    { cat exclude/* 2>/dev/null || true; } > excluded.tsv
+    awk -F'\\t' -v g=${group} 'FILENAME == "excluded.tsv" {x[\$1]; next}
+        !/^#/ && !(\$1 in x) && (\$5 == "reference genome" || \$5 == "representative genome") {print g","\$7","\$1}' excluded.tsv *.txt | head -4 > ${group}_combined.csv
     n=\$(cat ${group}_combined.csv | wc -l)
     printf '${group}\\trows\\t%s\\n${group}\\treference_full\\t%s\\n${group}\\tspecies\\t%s\\n${group}\\texcluded_lineage\\t0\\n${group}\\tcandidates\\t%s\\n' \$n \$n \$n \$n > ${group}_stats.tsv
     """

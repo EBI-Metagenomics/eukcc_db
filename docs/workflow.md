@@ -91,8 +91,11 @@ the database are selected.
     gets one species and the set can be larger than 25. Every annotated protein of these
     proteomes goes into the MetaEuk database, with no clustering. Hold-out species never
     enter the MetaEuk set, and the MetaEuk species are also leaves of the tree.
-- **2g. `split_clades`:** removes the hold-out genomes and splits the rest by NCBI
-  division: fungi, plant and protozoa.
+- **2g. (no process, was `split_clades`):** removes the hold-out genomes and keeps the
+  NCBI division (fungi, plant, protozoa) of the rest. The genomes keep their path from
+  2e instead of being copied, and each sub-database in step 4 reads only its own rows of
+  the candidate table. A genome added to `--exclude_genomes` in one division therefore
+  reruns, with `-resume`, only that sub-database and `base`.
 - **2h. `genome2faa`:** downloads the annotated RefSeq proteomes of the MetaEuk set.
 
 <a id="table-1"></a>

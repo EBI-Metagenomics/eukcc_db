@@ -2,7 +2,7 @@
 
 include { genetic_codes }                                                  from '../modules/prepare'
 include { filter_release_date; zip_summary; download_genome; genome2faa }  from '../modules/ncbi'
-include { size_filter; choose_representative; split_clades }               from '../modules/general'
+include { size_filter; choose_representative }                             from '../modules/general'
 
 workflow genome_selection {
     take:
@@ -48,16 +48,25 @@ workflow genome_selection {
         params.minbp, params.holdout_size, params.holdout_min_species, params.holdout_protect_ranks,
         params.calibration_size, params.metaeuk_size)
 
-    // 2g. the legacy emit names: "training" = fna/remaining, "bitscore" = fna/training;
-    // together they are every genome that is not in the hold-out
-    database_genomes = choose_representative.out.training.flatten()
-        .mix(choose_representative.out.bitscore.flatten())
+    // 2g. the roles of every genome: [accession: [roles]] (a MetaEuk genome has two rows).
+    // The genomes keep the path size_filter gave them, no copies: a change in one group
+    // (e.g. --exclude_genomes) does not move the files of the others, and -resume keeps
+    // their proteomes and sub-databases
+    roles = choose_representative.out.info.map { classification_csv ->
+        classification_csv.splitCsv(sep: '\t')
+            .groupBy { row -> row[1] }
+            .collectEntries { accession, rows -> [(accession): rows.collect { row -> row[2] }] }
+    }
+    // every genome outside the hold-out: (group, genome)
+    group_genomes = size_filter.out.combine(roles)
+        .filter { _group, genome, role -> role[genome.baseName] && !('testing' in role[genome.baseName]) }
+        .map { group, genome, _role -> tuple(group, genome) }
         .ifEmpty { error "No genome left for the databases after the hold-out: every candidate went to it (--holdout_size ${params.holdout_size})" }
-        .collect()
-    split_clades(database_genomes, choose_representative.out.info)
 
     // 2h. in: one genome of the MetaEuk set; out: its annotated RefSeq proteome
-    genome2faa(choose_representative.out.metaeuk.flatten())
+    genome2faa(size_filter.out.combine(roles)
+        .filter { _group, genome, role -> 'metaeuk' in (role[genome.baseName] ?: []) }
+        .map { _group, genome, _role -> genome })
 
     emit:
     ncbi_table = ncbi_table                                          // ncbi_table.txt
@@ -66,9 +75,7 @@ workflow genome_selection {
     downloaded = download_genome.out                                 // (group, genome)
     sized = size_filter.out                                          // (group, genome)
     classification = choose_representative.out.info                  // species_classification.csv
-    group_genomes = split_clades.out.protozoa                        // (group, [genomes])
-        .mix(split_clades.out.plant)
-        .mix(split_clades.out.fungi)
+    group_genomes = group_genomes                                    // (group, genome) outside the hold-out
     metaeuk_proteomes = genome2faa.out                               // <accession>.faa
     exclude_genomes = exclude_genomes                                // exclude_genomes.tsv, or [] without a list
 }

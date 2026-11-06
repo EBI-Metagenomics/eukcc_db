@@ -23,16 +23,23 @@ workflow build_db {
     panther         // PANTHER directory (books/)
 
     main:
+    // the rows of each clade only: a genome added to or dropped from one group leaves the
+    // tables of the others unchanged, so -resume keeps their sub-databases.
+    // (clade, ncbi_table_<clade>.txt)
+    clade_tables = (['base'] + params.divisions.collect { division -> division[0] }.unique())
+        .collect { clade -> clade_table(ncbi_table, clade) }
+        .inject { tables, table -> tables.mix(table) }
+
     // calibration sample (~calibration_size species, balanced by phylum) and the rest.
-    genome_group(clade_proteomes.combine(ncbi_table).combine(taxdb), params.calibration_size)
+    genome_group(clade_proteomes.join(clade_tables).combine(taxdb), params.calibration_size)
     calibration_proteomes = genome_group.out.bitscore.transpose()   // (clade, proteome)
     other_proteomes = genome_group.out.training.transpose()         // (clade, proteome)
 
     // per-profile bit score cut-offs
     // in: (clade, calibration proteome, all.hmm + 4 indices), e-value (--evalue)
     hmmsearch_training(calibration_proteomes.combine(panther_db), params.evalue)
-    // in: (clade, [hmmsearch tables of the calibration set], ncbi_table, taxdb)
-    optimize_bitscore(hmmsearch_training.out.tbl.groupTuple().combine(ncbi_table).combine(taxdb))
+    // in: (clade, [hmmsearch tables of the calibration set], ncbi_table_<clade>.txt, taxdb)
+    optimize_bitscore(hmmsearch_training.out.tbl.groupTuple().join(clade_tables).combine(taxdb))
     // in: (clade, bitscore_cutoffs_<clade>.csv, PANTHER directory)
     insert_bitscore(optimize_bitscore.out.combine(panther))
     // in: (clade, all_GA.hmm); out: (clade, all_GA.hmm + 4 indices) = the calibrated library
@@ -50,8 +57,8 @@ workflow build_db {
     // in: (clade, [GA tables])
     choose_tree_profiles(ga_tables)
     get_SCMG(ga_tables)
-    // in: (clade, [GA tables], ncbi_table)
-    reduce_taxinfo(ga_tables.combine(ncbi_table))
+    // in: (clade, [GA tables], ncbi_table_<clade>.txt)
+    reduce_taxinfo(ga_tables.join(clade_tables))
 
     // profiles_<clade>.csv has one "clade,marker" row per placement marker
     markers = choose_tree_profiles.out.profiles.flatMap { _clade, profiles_csv ->
@@ -106,8 +113,8 @@ workflow build_db {
     }
     // in: (clade, tree); out: (clade, rooted tree)
     midpoint_root(tree)
-    // in: (clade, rooted tree, taxinfo_<clade>.csv, ncbi_table, taxdb)
-    itol_annotations(midpoint_root.out.join(reduce_taxinfo.out).combine(ncbi_table).combine(taxdb))
+    // in: (clade, rooted tree, taxinfo_<clade>.csv, ncbi_table_<clade>.txt, taxdb)
+    itol_annotations(midpoint_root.out.join(reduce_taxinfo.out).join(clade_tables).combine(taxdb))
 
     // one row per clade, in the order the db process reads it:
     // (clade, SCMG table, supermatrix, rooted tree, SCMG HMMs, placement HMMs, [blocks],
@@ -134,4 +141,14 @@ workflow build_db {
         .mix(filter_gappy_leaves.out.report.map { _clade, leaf_gaps_tsv -> leaf_gaps_tsv })
         .mix(horizontal.out.map { _clade, supermatrix -> supermatrix })
     searched = hmmsearch_GA.out.map { clade, accession, _proteome, _ga_table -> "${clade}\t${accession}" }
+}
+
+// The rows of one clade (base: every row), in the order of ncbi_table. One collectFile per
+// clade: the path of its file, and so the -resume cache of the clade, depends only on
+// these rows
+def clade_table(ncbi_table, clade) {
+    return ncbi_table
+        .flatMap { table -> table.readLines().findAll { line -> clade == 'base' || line.startsWith("${clade},") } }
+        .collectFile(name: "ncbi_table_${clade}.txt", newLine: true, sort: 'index')
+        .map { table -> tuple(clade, table) }
 }

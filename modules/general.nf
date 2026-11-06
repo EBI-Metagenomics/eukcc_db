@@ -47,10 +47,6 @@ process choose_representative {
 
     output:
     path("species_classification.csv"), emit: info               // group, accession, role, taxid, lineage
-    path("fna/testing/*.fna"), emit: testing, optional: true     // hold-out
-    path("fna/training/*.fna"), emit: bitscore, optional: true   // legacy name: the "training" role
-    path("fna/remaining/*.fna"), emit: training, optional: true  // legacy name: the "remaining" role
-    path("fna/metaeuk/*.fna"), emit: metaeuk, optional: true     // MetaEuk set
 
     script:
     """
@@ -70,44 +66,14 @@ process choose_representative {
          --n_training ${calibration_size} \\
          --n_metaeuk ${metaeuk_size} \\
          abc
-
-    mkdir -p fna/remaining fna/testing fna/training fna/metaeuk
-    awk '{print "cp -av genomes/"\$2".fna fna/"\$3"/" }' species_classification.csv | sh
     """
 
     stub:
     // first genome per group is the hold-out, second also goes to MetaEuk
     """
-    mkdir -p genomes fna/remaining fna/testing fna/training fna/metaeuk
-    mv ${genomes} genomes/
     awk -F, '{n[\$1]++; r = n[\$1] == 1 ? "testing" : (n[\$1] == 2 ? "training" : "remaining");
               print \$1"\\t"\$3"\\t"r"\\t"\$2"\\t1;2759"; if (n[\$1] == 2) print \$1"\\t"\$3"\\tmetaeuk\\t"\$2"\\t1;2759"}' ${info} \\
         > species_classification.csv
-    awk '{print "cp -av genomes/"\$2".fna fna/"\$3"/" }' species_classification.csv | sh
-    """
-}
-
-// Every genome except the hold-out, grouped by sub-database
-process split_clades {
-    label 'process_single'
-    container 'biocontainers/python:3.9--1'
-
-    input:
-    path(genomes)                                                              // every genome outside the hold-out
-    path(info)                                                                 // role of every genome
-
-    output:
-    tuple val("plant"), path("plant/*"), emit: plant, optional: true           // ("plant", [genomes])
-    tuple val("fungi"), path("fungi/*"), emit: fungi, optional: true           // ("fungi", [genomes])
-    tuple val("protozoa"), path("protozoa/*"), emit: protozoa, optional: true  // ("protozoa", [genomes])
-
-    script:
-    """
-    mkdir genomes plant protozoa fungi
-    mv *.fna genomes/
-
-    grep -v testing ${info} | cut -f 1,2 | sort | uniq |\\
-        awk '{print "cp -av genomes/"\$2".fna "\$1"/" }' | sh
     """
 }
 
